@@ -12,8 +12,8 @@
       --accent2: #fb923c;
       --text: #f3f4f6;
       --muted: #9ca3af;
-      --ranked-bg: #1e3a5f;
       --green: #22c55e;
+      --blue: #3b82f6;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -22,91 +22,63 @@
       font-family: 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
       min-height: 100vh;
       padding: 16px;
-    }
-    h1 {
-      text-align: center;
-      color: var(--accent);
-      font-size: 1.5rem;
-      margin-bottom: 4px;
-      letter-spacing: 1px;
-    }
-    .subtitle {
-      text-align: center;
-      color: var(--muted);
-      margin-bottom: 16px;
-      font-size: 0.85rem;
+      max-width: 480px;
+      margin: 0 auto;
     }
 
-    /* Student ID */
+    h1 { text-align: center; color: var(--accent); font-size: 1.4rem; margin-bottom: 4px; }
+    .subtitle { text-align: center; color: var(--muted); font-size: 0.82rem; margin-bottom: 14px; }
+
+    /* ID input */
     .id-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      justify-content: center;
-      margin-bottom: 16px;
+      display: flex; align-items: center; gap: 8px;
+      justify-content: center; margin-bottom: 14px;
     }
-    .id-row label { color: var(--muted); font-size: 0.9rem; }
+    .id-row label { color: var(--muted); font-size: 0.9rem; white-space: nowrap; }
     .id-row input {
       background: var(--surface);
       border: 2px solid var(--accent);
       color: var(--text);
-      padding: 7px 14px;
+      padding: 7px 12px;
       border-radius: 8px;
       font-size: 1.1rem;
-      width: 100px;
+      width: 90px;
       text-align: center;
     }
     .id-row input:focus { outline: none; border-color: var(--accent2); }
 
     /* Progress */
-    .progress-bar-wrap {
-      max-width: 400px;
-      margin: 0 auto 6px;
-      background: var(--surface);
-      border-radius: 8px;
-      height: 8px;
-      overflow: hidden;
+    .progress-wrap {
+      max-width: 100%; background: var(--surface);
+      border-radius: 8px; height: 6px; overflow: hidden; margin-bottom: 6px;
     }
     .progress-bar {
-      height: 100%;
-      background: var(--accent);
-      transition: width 0.3s;
-      width: 0%;
-      border-radius: 8px;
+      height: 100%; background: var(--accent);
+      transition: width 0.25s; width: 0%; border-radius: 8px;
     }
     .progress-text {
-      text-align: center;
-      font-size: 0.82rem;
-      color: var(--muted);
-      margin-bottom: 12px;
+      text-align: center; font-size: 0.8rem; color: var(--muted); margin-bottom: 10px;
     }
     .progress-text span { color: var(--accent); font-weight: bold; }
 
     /* Blackboard */
     .blackboard {
-      text-align: center;
-      background: #166534;
-      color: #d1fae5;
-      padding: 5px 0;
-      border-radius: 4px 4px 0 0;
-      max-width: 400px;
-      margin: 0 auto;
-      font-size: 0.85rem;
-      letter-spacing: 6px;
+      text-align: center; background: #166534; color: #d1fae5;
+      padding: 5px 0; border-radius: 4px 4px 0 0;
+      font-size: 0.82rem; letter-spacing: 4px;
     }
 
-    /* Seat grid */
+    /* Seat grid 6 rows × 5 cols */
     .seat-grid {
       display: grid;
-      grid-template-columns: repeat(6, 1fr);
-      gap: 6px;
-      max-width: 400px;
-      margin: 0 auto 16px;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 5px;
       background: var(--surface);
-      padding: 10px;
+      padding: 8px;
       border-radius: 0 0 8px 8px;
       border: 1px solid #374151;
       border-top: none;
+      margin-bottom: 12px;
     }
     .seat {
       aspect-ratio: 1;
@@ -122,136 +94,78 @@
       position: relative;
       user-select: none;
     }
-    .seat:hover { border-color: var(--accent); background: #1f2937; }
-    .seat.ranked {
-      background: var(--ranked-bg);
-      border-color: var(--accent);
-    }
-    .seat.top3 { border-color: var(--accent2); background: #3d1a00; }
-    .seat .seat-id { font-size: 0.75rem; color: var(--muted); }
-    .seat .rank-num {
-      font-size: 1.1rem;
-      font-weight: bold;
-      color: var(--accent);
-      line-height: 1;
+    .seat:hover { border-color: var(--accent); }
+    .seat.ranked { background: #1e3a5f; border-color: var(--accent); }
+    .seat.top3   { background: #3d1a00; border-color: var(--accent2); }
+    .seat .seat-label { font-size: 0.65rem; color: var(--muted); }
+    .seat .rank-num  {
+      font-size: 1rem; font-weight: bold;
+      color: var(--accent); line-height: 1;
     }
     .seat.top3 .rank-num { color: var(--accent2); }
-    .seat .rank-label {
-      font-size: 0.55rem;
-      color: var(--muted);
-    }
+    .seat .rank-small { font-size: 0.5rem; color: var(--muted); }
 
-    /* Action buttons */
-    .btn-row {
-      display: flex;
-      gap: 8px;
-      justify-content: center;
-      max-width: 400px;
-      margin: 0 auto 16px;
-      flex-wrap: wrap;
-    }
+    /* Buttons */
+    .btn-row { display: flex; gap: 8px; justify-content: center; margin-bottom: 12px; }
     .btn {
-      padding: 8px 18px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      font-weight: bold;
-      transition: all 0.2s;
+      padding: 7px 16px; border: none; border-radius: 8px;
+      cursor: pointer; font-size: 0.88rem; font-weight: bold; transition: all 0.2s;
     }
-    .btn-primary {
-      background: var(--accent);
-      color: #111827;
-      flex: 1;
-      max-width: 180px;
-    }
+    .btn-primary { background: var(--accent); color: #111827; min-width: 120px; }
     .btn-primary:hover { background: var(--accent2); }
-    .btn-primary:disabled {
-      background: #374151;
-      color: #6b7280;
-      cursor: not-allowed;
-    }
+    .btn-primary:disabled { background: #374151; color: #6b7280; cursor: not-allowed; }
     .btn-ghost {
-      background: transparent;
-      color: var(--muted);
-      border: 1px solid #374151;
+      background: transparent; color: var(--muted);
+      border: 1px solid #374151; font-size: 0.82rem; padding: 6px 12px;
     }
     .btn-ghost:hover { border-color: var(--muted); color: var(--text); }
 
-    /* Ranked list preview */
-    .ranked-section {
-      max-width: 400px;
-      margin: 0 auto 16px;
-    }
-    .ranked-section h3 {
-      color: var(--accent);
-      font-size: 0.85rem;
-      margin-bottom: 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .ranked-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-    }
+    /* Ranked preview chips */
+    .ranked-section { margin-bottom: 14px; }
+    .ranked-section h3 { color: var(--accent); font-size: 0.82rem; margin-bottom: 6px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 4px; }
     .chip {
-      background: var(--ranked-bg);
-      border: 1px solid var(--accent);
-      border-radius: 4px;
-      padding: 2px 7px;
-      font-size: 0.78rem;
-      display: flex;
-      align-items: center;
-      gap: 3px;
+      background: #1e3a5f; border: 1px solid var(--accent);
+      border-radius: 4px; padding: 2px 7px; font-size: 0.76rem;
+      display: flex; align-items: center; gap: 3px;
     }
-    .chip-rank { color: var(--muted); font-size: 0.68rem; }
-    .chip-seat { color: var(--text); font-weight: bold; }
+    .chip-r { color: var(--muted); font-size: 0.66rem; }
+    .chip-s { color: var(--text); font-weight: bold; }
+
+    /* Already submitted */
+    .already-notice {
+      display: none; background: #1a3a1a; border: 1px solid var(--green);
+      color: var(--green); padding: 7px 12px; border-radius: 8px;
+      font-size: 0.82rem; text-align: center; margin-bottom: 10px;
+    }
 
     /* Success */
     #successScreen {
-      display: none;
-      text-align: center;
-      padding: 60px 20px;
+      display: none; text-align: center; padding: 60px 20px;
     }
-    .success-icon { font-size: 4rem; margin-bottom: 16px; }
-    .success-title { color: var(--green); font-size: 1.5rem; margin-bottom: 8px; }
-    .success-msg { color: var(--muted); font-size: 0.9rem; }
-    .success-id { color: var(--accent); font-size: 1.1rem; margin-top: 12px; }
-
-    /* Already submitted notice */
-    .already-notice {
-      display: none;
-      background: #1e3a1e;
-      border: 1px solid var(--green);
-      color: var(--green);
-      padding: 8px 14px;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      text-align: center;
-      max-width: 400px;
-      margin: 0 auto 12px;
-    }
+    .suc-icon { font-size: 3.5rem; margin-bottom: 14px; }
+    .suc-title { color: var(--green); font-size: 1.4rem; margin-bottom: 8px; }
+    .suc-msg { color: var(--muted); font-size: 0.88rem; }
+    .suc-id { color: var(--accent); font-size: 1rem; margin-top: 10px; }
   </style>
 </head>
 <body>
 
 <div id="mainContent">
   <h1>🪑 座位志願填選</h1>
-  <p class="subtitle">依喜好順序點選座位 → 第1個點選 = 第1志願</p>
+  <p class="subtitle">依喜好順序點選座位，第1個點選 = 第1志願（最想坐）</p>
 
   <div class="id-row">
-    <label>座號</label>
-    <input type="number" id="studentId" placeholder="1–36" min="1" max="36">
+    <label>我的座號</label>
+    <input type="number" id="studentId" placeholder="1–30" min="1" max="30">
   </div>
 
-  <div class="already-notice" id="alreadyNotice">⚠️ 此座號已送出過，再次送出將覆蓋舊紀錄</div>
+  <div class="already-notice" id="alreadyNotice">⚠️ 此座號已送出，再次送出將覆蓋舊紀錄</div>
 
-  <div class="progress-bar-wrap">
+  <div class="progress-wrap">
     <div class="progress-bar" id="progressBar"></div>
   </div>
-  <p class="progress-text">已排序 <span id="count">0</span> / 36 個座位</p>
+  <p class="progress-text">已排序 <span id="count">0</span> / 30 個座位</p>
 
   <div class="blackboard">▌ 黑　板 ▐</div>
   <div class="seat-grid" id="seatGrid"></div>
@@ -262,8 +176,8 @@
   </div>
 
   <div class="ranked-section">
-    <h3>📋 志願順序預覽</h3>
-    <div class="ranked-chips" id="rankedChips"></div>
+    <h3>📋 志願順序預覽（前12名）</h3>
+    <div class="chips" id="chips"></div>
   </div>
 
   <div class="btn-row">
@@ -272,10 +186,10 @@
 </div>
 
 <div id="successScreen">
-  <div class="success-icon">🎉</div>
-  <h2 class="success-title">志願送出成功！</h2>
-  <p class="success-msg">等老師公布座位分配結果</p>
-  <p class="success-id" id="successId"></p>
+  <div class="suc-icon">🎉</div>
+  <h2 class="suc-title">志願送出成功！</h2>
+  <p class="suc-msg">等老師公布座位分配結果</p>
+  <p class="suc-id" id="sucId"></p>
 </div>
 
 <script type="module">
@@ -294,77 +208,73 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  const TOTAL = 36;
-  let ranking = []; // seat numbers in preference order
+  // 6 rows × 5 cols = 30 seats, labeled "row-col"
+  const ROWS = 6, COLS = 5, TOTAL = ROWS * COLS;
+  const ALL_SEATS = [];
+  for (let r = 1; r <= ROWS; r++)
+    for (let c = 1; c <= COLS; c++)
+      ALL_SEATS.push(`${r}-${c}`);
 
-  // --- Build Grid ---
+  let ranking = []; // seat IDs in preference order
+
+  // Build grid
   const grid = document.getElementById('seatGrid');
-  for (let i = 1; i <= TOTAL; i++) {
-    const seat = document.createElement('div');
-    seat.className = 'seat';
-    seat.dataset.seat = i;
-    seat.innerHTML = `<span class="seat-id">${i}</span>`;
-    seat.addEventListener('click', () => toggleSeat(i));
-    grid.appendChild(seat);
+  ALL_SEATS.forEach(seatId => {
+    const el = document.createElement('div');
+    el.className = 'seat';
+    el.dataset.seat = seatId;
+    el.innerHTML = `<span class="seat-label">${seatId}</span>`;
+    el.addEventListener('click', () => toggle(seatId));
+    grid.appendChild(el);
+  });
+
+  function toggle(seatId) {
+    const idx = ranking.indexOf(seatId);
+    if (idx === -1) ranking.push(seatId);
+    else ranking.splice(idx, 1);
+    refresh();
   }
 
-  function toggleSeat(seatNum) {
-    const idx = ranking.indexOf(seatNum);
-    if (idx === -1) {
-      ranking.push(seatNum);
-    } else {
-      ranking.splice(idx, 1);
-    }
-    refreshAll();
-  }
-
-  function refreshAll() {
-    // Update grid
-    document.querySelectorAll('.seat').forEach(el => {
-      const n = parseInt(el.dataset.seat);
-      const rank = ranking.indexOf(n);
+  function refresh() {
+    // Update each seat cell
+    ALL_SEATS.forEach(seatId => {
+      const el = grid.querySelector(`[data-seat="${seatId}"]`);
+      const rank = ranking.indexOf(seatId);
       if (rank === -1) {
         el.className = 'seat';
-        el.innerHTML = `<span class="seat-id">${n}</span>`;
+        el.innerHTML = `<span class="seat-label">${seatId}</span>`;
       } else {
         const r = rank + 1;
         el.className = r <= 3 ? 'seat ranked top3' : 'seat ranked';
-        el.innerHTML = `
-          <span class="rank-num">${r}</span>
-          <span class="rank-label">${n}號</span>
-        `;
+        el.innerHTML = `<span class="rank-num">${r}</span><span class="rank-small">${seatId}</span>`;
       }
     });
     // Progress
     const pct = (ranking.length / TOTAL * 100).toFixed(0);
     document.getElementById('progressBar').style.width = pct + '%';
     document.getElementById('count').textContent = ranking.length;
-    // Submit btn
+    // Submit
     document.getElementById('submitBtn').disabled = ranking.length < TOTAL;
-    // Chips
-    const chips = document.getElementById('rankedChips');
-    chips.innerHTML = ranking.slice(0, 12).map((s, i) =>
-      `<div class="chip"><span class="chip-rank">${i+1}</span><span class="chip-seat">${s}號</span></div>`
-    ).join('') + (ranking.length > 12 ? `<div class="chip"><span class="chip-seat">...+${ranking.length - 12}</span></div>` : '');
+    // Chips preview (first 12)
+    document.getElementById('chips').innerHTML =
+      ranking.slice(0, 12).map((s, i) =>
+        `<div class="chip"><span class="chip-r">${i+1}</span><span class="chip-s">${s}</span></div>`
+      ).join('') +
+      (ranking.length > 12 ? `<div class="chip"><span class="chip-s">…+${ranking.length - 12}</span></div>` : '');
   }
 
-  // Auto-fill remaining seats in numeric order
+  // Auto-fill: add remaining seats in natural order
   document.getElementById('autoFillBtn').addEventListener('click', () => {
-    const remaining = [];
-    for (let i = 1; i <= TOTAL; i++) {
-      if (!ranking.includes(i)) remaining.push(i);
-    }
-    ranking = [...ranking, ...remaining];
-    refreshAll();
+    ALL_SEATS.forEach(s => { if (!ranking.includes(s)) ranking.push(s); });
+    refresh();
   });
 
-  // Reset
   document.getElementById('resetBtn').addEventListener('click', () => {
     ranking = [];
-    refreshAll();
+    refresh();
   });
 
-  // Check if already submitted when ID changes
+  // Check existing submission
   document.getElementById('studentId').addEventListener('change', async () => {
     const id = parseInt(document.getElementById('studentId').value);
     if (!id || id < 1 || id > TOTAL) return;
@@ -375,31 +285,25 @@
   // Submit
   document.getElementById('submitBtn').addEventListener('click', async () => {
     const id = parseInt(document.getElementById('studentId').value);
-    if (!id || id < 1 || id > TOTAL) {
-      alert('請輸入正確的座號（1–36）');
-      return;
-    }
-    if (ranking.length < TOTAL) {
-      alert('請完成所有 36 個座位的排序，或使用「自動填入剩餘」');
-      return;
-    }
+    if (!id || id < 1 || id > TOTAL) { alert('請輸入正確的座號（1–30）'); return; }
+    if (ranking.length < TOTAL) { alert('請完成所有 30 個座位的排序，或使用「自動填入剩餘」'); return; }
+
     const btn = document.getElementById('submitBtn');
-    btn.disabled = true;
-    btn.textContent = '送出中…';
+    btn.disabled = true; btn.textContent = '送出中…';
     try {
       await setDoc(doc(db, 'seat_preferences', String(id).padStart(2, '0')), {
         studentId: id,
-        ranking,          // array[0]=最想要的座位, array[35]=最不想要的
+        // ranking[0] = 最想要的座位（志願序1），ranking[29] = 最不想要
+        ranking,
         submittedAt: serverTimestamp()
       });
       document.getElementById('mainContent').style.display = 'none';
       document.getElementById('successScreen').style.display = 'block';
-      document.getElementById('successId').textContent = `座號 ${id} 號`;
+      document.getElementById('sucId').textContent = `座號 ${id} 號`;
     } catch (err) {
       console.error(err);
       alert('送出失敗，請重試');
-      btn.disabled = false;
-      btn.textContent = '✅ 送出志願表';
+      btn.disabled = false; btn.textContent = '✅ 送出志願表';
     }
   });
 </script>
