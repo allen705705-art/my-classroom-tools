@@ -71,7 +71,7 @@
     /* Seat grid 6 rows × 5 cols */
     .seat-grid {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(6, 1fr);
       gap: 5px;
       background: var(--surface);
       padding: 8px;
@@ -209,7 +209,7 @@
   const db = getFirestore(app);
 
   // 6 rows × 5 cols = 30 seats, labeled "row-col"
-  const ROWS = 6, COLS = 5, TOTAL = ROWS * COLS;
+  const ROWS = 5, COLS = 6, TOTAL = ROWS * COLS;
   const ALL_SEATS = [];
   for (let r = 1; r <= ROWS; r++)
     for (let c = 1; c <= COLS; c++)

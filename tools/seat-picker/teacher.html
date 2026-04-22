@@ -110,7 +110,7 @@
     }
     .result-grid {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(6, 1fr);
       gap: 5px;
       background: var(--surface);
       padding: 8px;
@@ -264,6 +264,12 @@
 
   <!-- Wish stats -->
   <div class="wish-summary" id="wishSummary"></div>
+
+  <!-- Export -->
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid #374151;">
+    <button class="btn btn-ghost" id="exportResultBtn">⬇️ 座位分配結果 (.csv)</button>
+    <button class="btn btn-ghost" id="exportPrefBtn">⬇️ 學生志願序列表 (.csv)</button>
+  </div>
 </div>
 
 <script type="module">
@@ -282,7 +288,7 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  const ROWS = 6, COLS = 5, TOTAL = ROWS * COLS;
+  const ROWS = 5, COLS = 6, TOTAL = ROWS * COLS;
   const ALL_SEATS = [];
   for (let r = 1; r <= ROWS; r++)
     for (let c = 1; c <= COLS; c++)
@@ -366,6 +372,7 @@
   }
 
   function render(result) {
+    lastResult = result;
     // ---- Grid ----
     const grid = document.getElementById('resGrid');
     grid.innerHTML = '';
@@ -441,6 +448,39 @@
       tab.classList.add('active');
       document.getElementById('panel' + tab.dataset.panel.charAt(0).toUpperCase() + tab.dataset.panel.slice(1)).classList.add('active');
     });
+  });
+
+  // ---- CSV export helpers ----
+  function downloadCSV(filename, rows) {
+    const bom = '\uFEFF'; // UTF-8 BOM for Excel
+    const csv = bom + rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+    a.download = filename;
+    a.click();
+  }
+
+  let lastResult = null; // store latest assignment result for export
+
+  document.getElementById('exportResultBtn').addEventListener('click', () => {
+    if (!lastResult) { alert('請先執行座位分配'); return; }
+    const rows = [['座號', '分配座位', '志願序']];
+    Object.entries(lastResult)
+      .sort((a, b) => parseInt(a[1].studentId) - parseInt(b[1].studentId))
+      .forEach(([seat, { studentId, wishRank }]) => {
+        rows.push([studentId, seat, wishRank]);
+      });
+    downloadCSV('座位分配結果.csv', rows);
+  });
+
+  document.getElementById('exportPrefBtn').addEventListener('click', () => {
+    if (Object.keys(subs).length === 0) { alert('尚無學生送出志願'); return; }
+    const header = ['座號', ...Array.from({ length: TOTAL }, (_, i) => `第${i + 1}志願`)];
+    const rows = [header];
+    Object.values(subs)
+      .sort((a, b) => a.studentId - b.studentId)
+      .forEach(s => rows.push([s.studentId, ...s.ranking]));
+    downloadCSV('學生志願序列表.csv', rows);
   });
 
   // Clear all
