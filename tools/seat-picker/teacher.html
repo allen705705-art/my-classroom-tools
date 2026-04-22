@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>座位分配 — 老師控制台</title>
+  <style>
+    :root {
+      --bg: #111827;
+      --surface: #1f2937;
+      --accent: #f59e0b;
+      --accent2: #fb923c;
+      --text: #f3f4f6;
+      --muted: #9ca3af;
+      --green: #22c55e;
+      --red: #ef4444;
+      --blue: #3b82f6;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    h1 { color: var(--accent); font-size: 1.4rem; }
+    .header-right { display: flex; gap: 8px; }
+
+    /* Cards */
+    .card {
+      background: var(--surface);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 16px;
+      border: 1px solid #374151;
+    }
+    .card h2 {
+      color: var(--accent);
+      font-size: 0.95rem;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Stats */
+    .stats-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .stat-box {
+      flex: 1;
+      min-width: 100px;
+      background: var(--bg);
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+    }
+    .stat-num {
+      font-size: 2rem;
+      font-weight: bold;
+      color: var(--accent);
+      line-height: 1;
+    }
+    .stat-label { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+
+    /* Submitted list */
+    .submitted-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+    .id-chip {
+      background: var(--bg);
+      border: 1px solid var(--green);
+      color: var(--green);
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 0.8rem;
+    }
+    .missing-chip {
+      background: var(--bg);
+      border: 1px solid #374151;
+      color: var(--muted);
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 0.8rem;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 8px 18px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: bold;
+      transition: all 0.2s;
+    }
+    .btn-accent {
+      background: var(--accent);
+      color: #111827;
+    }
+    .btn-accent:hover { background: var(--accent2); }
+    .btn-accent:disabled {
+      background: #374151;
+      color: #6b7280;
+      cursor: not-allowed;
+    }
+    .btn-danger {
+      background: transparent;
+      color: var(--red);
+      border: 1px solid var(--red);
+    }
+    .btn-danger:hover { background: #450a0a; }
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid #374151;
+      font-size: 0.8rem;
+      padding: 6px 12px;
+    }
+    .btn-ghost:hover { border-color: var(--muted); color: var(--text); }
+
+    /* Grid result */
+    .blackboard {
+      text-align: center;
+      background: #166534;
+      color: #d1fae5;
+      padding: 5px 0;
+      border-radius: 4px 4px 0 0;
+      font-size: 0.85rem;
+      letter-spacing: 6px;
+    }
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 6px;
+      background: #1f2937;
+      padding: 10px;
+      border-radius: 0 0 8px 8px;
+      border: 1px solid #374151;
+      border-top: none;
+      margin-bottom: 16px;
+    }
+    .result-cell {
+      aspect-ratio: 1;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.78rem;
+      position: relative;
+    }
+    .result-cell.empty {
+      background: #111827;
+      border: 2px dashed #374151;
+      color: var(--muted);
+    }
+    .result-cell.filled {
+      border: 2px solid var(--accent);
+    }
+    .result-cell .cell-seat { font-size: 0.6rem; color: var(--muted); }
+    .result-cell .cell-student { font-size: 1rem; font-weight: bold; }
+    .result-cell .cell-wish {
+      position: absolute;
+      top: 2px;
+      right: 4px;
+      font-size: 0.55rem;
+      font-weight: bold;
+    }
+    /* Wish rank color coding */
+    .wish-1 { background: #1e3a1e; border-color: var(--green) !important; }
+    .wish-1 .cell-wish { color: var(--green); }
+    .wish-2 { background: #1a3a1f; border-color: #4ade80 !important; }
+    .wish-2 .cell-wish { color: #4ade80; }
+    .wish-3 { background: #1e3a2e; border-color: #86efac !important; }
+    .wish-3 .cell-wish { color: #86efac; }
+    .wish-mid { background: #1c2a3a; border-color: var(--blue) !important; }
+    .wish-mid .cell-wish { color: var(--blue); }
+    .wish-low { background: #2a1c1c; border-color: var(--accent2) !important; }
+    .wish-low .cell-wish { color: var(--accent2); }
+
+    /* Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    th {
+      background: var(--bg);
+      color: var(--muted);
+      padding: 8px 10px;
+      text-align: left;
+      font-weight: normal;
+      font-size: 0.78rem;
+    }
+    td {
+      padding: 6px 10px;
+      border-bottom: 1px solid #374151;
+    }
+    tr:last-child td { border-bottom: none; }
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: bold;
+    }
+    .badge-1 { background: #166534; color: #bbf7d0; }
+    .badge-2 { background: #14532d; color: #86efac; }
+    .badge-3 { background: #064e3b; color: #6ee7b7; }
+    .badge-mid { background: #1e3a5f; color: #93c5fd; }
+    .badge-low { background: #450a0a; color: #fca5a5; }
+
+    /* Summary legend */
+    .legend { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+    .legend-item { display: flex; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--muted); }
+    .legend-dot {
+      width: 10px; height: 10px; border-radius: 2px;
+    }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 0; margin-bottom: 0; border-bottom: 2px solid #374151; }
+    .tab {
+      padding: 8px 16px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: var(--muted);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+    }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab-panel { display: none; padding-top: 14px; }
+    .tab-panel.active { display: block; }
+
+    /* Algorithm note */
+    .algo-note {
+      background: #1c2a3a;
+      border: 1px solid var(--blue);
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .algo-note span { color: var(--blue); }
+
+    .live-dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      margin-right: 4px;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🎛️ 座位分配控制台</h1>
+  <div class="header-right">
+    <button class="btn btn-ghost" id="clearAllBtn">🗑️ 清除所有資料</button>
+    <a href="student.html" target="_blank">
+      <button class="btn btn-ghost">🔗 學生填選頁</button>
+    </a>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="card">
+  <h2><span class="live-dot"></span>即時狀態</h2>
+  <div class="stats-row">
+    <div class="stat-box">
+      <div class="stat-num" id="statSubmitted">0</div>
+      <div class="stat-label">已送出</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num" id="statPending" style="color:var(--muted)">36</div>
+      <div class="stat-label">尚未送出</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num" id="statPct">0%</div>
+      <div class="stat-label">完成率</div>
+    </div>
+  </div>
+</div>
+
+<!-- Submission status -->
+<div class="card">
+  <h2>📋 送出狀況</h2>
+  <p style="font-size:0.8rem;color:var(--muted);margin-bottom:8px">
+    <span style="color:var(--green)">●</span> 已送出 &nbsp;
+    <span style="color:#374151">●</span> 未送出
+  </p>
+  <div class="submitted-list" id="submittedList"></div>
+</div>
+
+<!-- Assignment -->
+<div class="card">
+  <h2>⚡ 執行座位分配</h2>
+  <div class="algo-note">
+    <span>演算法說明：</span>隨機抽籤順序 → 每位學生依序選取最高志願中尚未被佔用的座位（隨機串列獨裁法）
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <button class="btn btn-accent" id="assignBtn" disabled>🎲 執行座位分配</button>
+    <button class="btn btn-ghost" id="reAssignBtn" style="display:none">🔄 重新抽籤</button>
+    <span id="assignNote" style="font-size:0.8rem;color:var(--muted)">需全班送出後才可執行</span>
+  </div>
+</div>
+
+<!-- Results -->
+<div class="card" id="resultsCard" style="display:none">
+  <h2>🗺️ 分配結果</h2>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="grid">格狀圖</div>
+    <div class="tab" data-tab="table">列表</div>
+  </div>
+
+  <!-- Grid view -->
+  <div class="tab-panel active" id="tabGrid">
+    <div class="blackboard">▌ 黑　板 ▐</div>
+    <div class="result-grid" id="resultGrid"></div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#166534"></div>第1志願</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#14532d"></div>第2志願</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#064e3b"></div>第3志願</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#1e3a5f"></div>第4–10志願</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#450a0a"></div>第11志願以後</div>
+    </div>
+  </div>
+
+  <!-- Table view -->
+  <div class="tab-panel" id="tabTable">
+    <table id="resultTable">
+      <thead>
+        <tr>
+          <th>座號</th>
+          <th>分配座位</th>
+          <th>幾志願</th>
+          <th>滿意度</th>
+        </tr>
+      </thead>
+      <tbody id="resultTbody"></tbody>
+    </table>
+  </div>
+
+  <!-- Stats summary -->
+  <div style="margin-top:14px;padding-top:12px;border-top:1px solid #374151;">
+    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:6px">分配統計</p>
+    <div id="wishStats" style="display:flex;gap:8px;flex-wrap:wrap;font-size:0.8rem;color:var(--muted)"></div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getFirestore, collection, onSnapshot, deleteDoc, doc, getDocs, setDoc, serverTimestamp }
+    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAov-9uW6FZQmf41-PPJ4-plvqR-Bu6zg4",
+    authDomain: "teaching-test-5fd1c.firebaseapp.com",
+    projectId: "teaching-test-5fd1c",
+    storageBucket: "teaching-test-5fd1c.firebasestorage.app",
+    messagingSenderId: "404776287999",
+    appId: "1:404776287999:web:6b14120c71c8962fe396ca"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const TOTAL = 36;
+  let submissions = {}; // { studentId: { ranking: [...] } }
+  let assignmentResult = null; // { studentId: assignedSeat }
+
+  // --- Real-time listener ---
+  onSnapshot(collection(db, 'seat_preferences'), (snap) => {
+    submissions = {};
+    snap.forEach(d => {
+      const data = d.data();
+      submissions[data.studentId] = data;
+    });
+    updateUI();
+  });
+
+  function updateUI() {
+    const count = Object.keys(submissions).length;
+    document.getElementById('statSubmitted').textContent = count;
+    document.getElementById('statPending').textContent = TOTAL - count;
+    document.getElementById('statPct').textContent = Math.round(count / TOTAL * 100) + '%';
+
+    // Chip list
+    const list = document.getElementById('submittedList');
+    let html = '';
+    for (let i = 1; i <= TOTAL; i++) {
+      if (submissions[i]) {
+        html += `<div class="id-chip">${i}號</div>`;
+      } else {
+        html += `<div class="missing-chip">${i}號</div>`;
+      }
+    }
+    list.innerHTML = html;
+
+    // Assign button
+    const canAssign = count > 0;
+    document.getElementById('assignBtn').disabled = !canAssign;
+    document.getElementById('assignNote').textContent =
+      count === TOTAL ? '全班已送出，可執行分配' :
+      count === 0 ? '需有人送出才可執行' :
+      `已有 ${count}/36 人送出，可先執行（其餘座位空出）`;
+  }
+
+  // --- Assignment Algorithm: Random Serial Dictatorship ---
+  function assignSeats() {
+    const students = Object.values(submissions);
+    // Shuffle
+    for (let i = students.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [students[i], students[j]] = [students[j], students[i]];
+    }
+    const occupied = new Set();
+    const result = {}; // studentId -> { seat, wishRank }
+    for (const s of students) {
+      for (let rank = 0; rank < s.ranking.length; rank++) {
+        const seat = s.ranking[rank];
+        if (!occupied.has(seat)) {
+          result[s.studentId] = { seat, wishRank: rank + 1 };
+          occupied.add(seat);
+          break;
+        }
+      }
+    }
+    return result;
+  }
+
+  document.getElementById('assignBtn').addEventListener('click', doAssign);
+  document.getElementById('reAssignBtn').addEventListener('click', doAssign);
+
+  function doAssign() {
+    assignmentResult = assignSeats();
+    renderResults(assignmentResult);
+    document.getElementById('resultsCard').style.display = 'block';
+    document.getElementById('reAssignBtn').style.display = 'inline-block';
+    document.getElementById('assignNote').textContent = '結果已產生，可重新抽籤';
+  }
+
+  function renderResults(result) {
+    // Grid
+    const gridEl = document.getElementById('resultGrid');
+    gridEl.innerHTML = '';
+    for (let seat = 1; seat <= TOTAL; seat++) {
+      const cell = document.createElement('div');
+      // Find who got this seat
+      const entry = Object.entries(result).find(([, v]) => v.seat === seat);
+      if (entry) {
+        const [sid, { wishRank }] = entry;
+        const wishClass =
+          wishRank === 1 ? 'wish-1' :
+          wishRank === 2 ? 'wish-2' :
+          wishRank === 3 ? 'wish-3' :
+          wishRank <= 10 ? 'wish-mid' : 'wish-low';
+        cell.className = `result-cell filled ${wishClass}`;
+        cell.innerHTML = `
+          <span class="cell-seat">${seat}號座</span>
+          <span class="cell-student">${sid}</span>
+          <span class="cell-wish">志${wishRank}</span>
+        `;
+      } else {
+        cell.className = 'result-cell empty';
+        cell.textContent = seat;
+      }
+      gridEl.appendChild(cell);
+    }
+
+    // Table
+    const tbody = document.getElementById('resultTbody');
+    const rows = Object.entries(result).sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
+    tbody.innerHTML = rows.map(([sid, { seat, wishRank }]) => {
+      const badgeClass =
+        wishRank === 1 ? 'badge-1' :
+        wishRank === 2 ? 'badge-2' :
+        wishRank === 3 ? 'badge-3' :
+        wishRank <= 10 ? 'badge-mid' : 'badge-low';
+      return `<tr>
+        <td>${sid} 號</td>
+        <td><strong>${seat}</strong> 號座位</td>
+        <td><span class="badge ${badgeClass}">第 ${wishRank} 志願</span></td>
+        <td style="color:${wishRank<=3?'var(--green)':wishRank<=10?'var(--blue)':'var(--accent2)'}">
+          ${wishRank<=3?'😊 滿意':wishRank<=10?'🙂 普通':'😅 委屈'}
+        </td>
+      </tr>`;
+    }).join('');
+
+    // Summary stats
+    const stats = { 1: 0, 2: 0, 3: 0, mid: 0, low: 0 };
+    Object.values(result).forEach(({ wishRank }) => {
+      if (wishRank === 1) stats[1]++;
+      else if (wishRank === 2) stats[2]++;
+      else if (wishRank === 3) stats[3]++;
+      else if (wishRank <= 10) stats.mid++;
+      else stats.low++;
+    });
+    document.getElementById('wishStats').innerHTML = `
+      <span style="color:var(--green)">第1志願：${stats[1]}人</span>
+      <span style="color:#4ade80">第2志願：${stats[2]}人</span>
+      <span style="color:#86efac">第3志願：${stats[3]}人</span>
+      <span style="color:var(--blue)">第4–10志願：${stats.mid}人</span>
+      <span style="color:var(--accent2)">第11志願以後：${stats.low}人</span>
+    `;
+  }
+
+  // Tabs
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('tab' + tab.dataset.tab.charAt(0).toUpperCase() + tab.dataset.tab.slice(1)).classList.add('active');
+    });
+  });
+
+  // Clear all
+  document.getElementById('clearAllBtn').addEventListener('click', async () => {
+    if (!confirm('確定要清除所有學生送出的志願？此動作無法復原！')) return;
+    const snap = await getDocs(collection(db, 'seat_preferences'));
+    for (const d of snap.docs) await deleteDoc(d.ref);
+    assignmentResult = null;
+    document.getElementById('resultsCard').style.display = 'none';
+    document.getElementById('reAssignBtn').style.display = 'none';
+  });
+</script>
+</body>
+</html>
