@@ -336,6 +336,11 @@
       });
     }
     // Sort by rank ascending → best preferences first
+    // 先隨機洗牌，再穩定排序：同志願序時保留隨機順序（非座號順序）
+    for (let i = triples.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [triples[i], triples[j]] = [triples[j], triples[i]];
+    }
     triples.sort((a, b) => a.rank - b.rank);
 
     const usedStudents = new Set();
