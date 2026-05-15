@@ -183,6 +183,21 @@
 
     /* Tooltip on hover */
     .cell[title] { cursor: pointer; }
+
+    /* Roster card */
+    textarea {
+      width: 100%; min-height: 120px; background: var(--bg);
+      border: 1px solid #374151; color: var(--text);
+      padding: 10px; border-radius: 8px; font-family: monospace;
+      font-size: 0.85rem; resize: vertical;
+    }
+    textarea:focus { outline: none; border-color: var(--accent); }
+    .roster-hint {
+      font-size: 0.75rem; color: var(--muted); margin-bottom: 6px; line-height: 1.6;
+    }
+    .roster-hint code {
+      background: #374151; padding: 1px 5px; border-radius: 3px; color: var(--text);
+    }
   </style>
 </head>
 <body>
@@ -194,6 +209,21 @@
     <a href="student.html" target="_blank">
       <button class="btn btn-ghost">🔗 學生填選頁</button>
     </a>
+  </div>
+</div>
+
+<!-- Roster management -->
+<div class="card">
+  <h2>👥 班級名單設定</h2>
+  <p class="roster-hint">
+    每行一位學生，格式：<code>座號,姓名,身分證末6碼</code>（身分證末6碼為數字，系統會自動加密儲存）<br>
+    範例：<code>1,王小明,456789</code>
+  </p>
+  <textarea id="rosterInput" placeholder="1,王小明,456789&#10;2,李小華,123456&#10;3,陳大文,654321&#10;..."></textarea>
+  <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
+    <button class="btn btn-accent" id="uploadRosterBtn">📤 匯入名單</button>
+    <button class="btn btn-ghost" id="clearRosterBtn">🗑️ 清除名單</button>
+    <span class="note" id="rosterNote"></span>
   </div>
 </div>
 
@@ -276,8 +306,14 @@
 
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import { getFirestore, collection, onSnapshot, getDocs, deleteDoc, doc }
+  import { getFirestore, collection, onSnapshot, getDocs, deleteDoc, doc, setDoc, serverTimestamp }
     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+  // SHA-256 hash
+  async function sha256(str) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
 
   const firebaseConfig = {
     apiKey: "AIzaSyAov-9uW6FZQmf41-PPJ4-plvqR-Bu6zg4",
@@ -297,6 +333,43 @@
       ALL_SEATS.push(`${r}-${c}`);
 
   let subs = {}; // { studentId: { ranking: [...] } }
+
+  // ---- Roster upload ----
+  document.getElementById('uploadRosterBtn').addEventListener('click', async () => {
+    const text = document.getElementById('rosterInput').value.trim();
+    if (!text) { alert('請貼上名單資料'); return; }
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+    const btn = document.getElementById('uploadRosterBtn');
+    btn.disabled = true; btn.textContent = '匯入中…';
+    let ok = 0; const errs = [];
+    for (const line of lines) {
+      const parts = line.split(',').map(p => p.trim());
+      if (parts.length < 3) { errs.push(`格式錯誤：${line}`); continue; }
+      const [seatStr, name, idLast6] = parts;
+      const n = parseInt(seatStr);
+      if (!n || n < 1 || n > 30) { errs.push(`座號錯誤：${line}`); continue; }
+      if (!/^\d{6}$/.test(idLast6)) { errs.push(`末6碼需為6位數字：${line}`); continue; }
+      try {
+        const idHash = await sha256(idLast6);
+        await setDoc(doc(db, 'class_roster', String(n).padStart(2, '0')), {
+          seatNumber: n, name, idHash, updatedAt: serverTimestamp()
+        });
+        ok++;
+      } catch (e) { errs.push(`上傳失敗：${line}`); }
+    }
+    btn.disabled = false; btn.textContent = '📤 匯入名單';
+    const noteEl = document.getElementById('rosterNote');
+    noteEl.textContent = `✅ 成功 ${ok} 筆` + (errs.length ? `　❌ ${errs.length} 筆錯誤` : '');
+    noteEl.style.color = errs.length ? 'var(--accent2)' : 'var(--green)';
+    if (errs.length) console.warn('匯入錯誤：', errs.join('\n'));
+  });
+
+  document.getElementById('clearRosterBtn').addEventListener('click', async () => {
+    if (!confirm('確定要清除班級名單？此動作無法復原！')) return;
+    const snap = await getDocs(collection(db, 'class_roster'));
+    for (const d of snap.docs) await deleteDoc(d.ref);
+    document.getElementById('rosterNote').textContent = '名單已清除';
+  });
 
   // ---- Real-time listener ----
   onSnapshot(collection(db, 'seat_preferences'), snap => {

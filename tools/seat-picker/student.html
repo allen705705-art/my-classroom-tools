@@ -132,6 +132,46 @@
     .chip-r { color: var(--muted); font-size: 0.66rem; }
     .chip-s { color: var(--text); font-weight: bold; }
 
+    /* ── Verify step ── */
+    #verifyStep { max-width: 480px; margin: 0 auto; }
+    .steps-row {
+      display: flex; align-items: center; justify-content: center;
+      gap: 6px; margin-bottom: 20px; font-size: 0.78rem;
+    }
+    .step-dot {
+      padding: 4px 12px; border-radius: 20px;
+      background: var(--surface); color: var(--muted); border: 1px solid #374151;
+    }
+    .step-dot.active { background: var(--accent); color: #111827; font-weight: bold; border-color: var(--accent); }
+    .step-dot.done  { background: #064e3b; color: var(--green); border-color: var(--green); }
+    .step-arr { color: #374151; font-size: 1rem; }
+
+    .lookup-box, .verify-box {
+      background: var(--surface); border-radius: 10px;
+      padding: 18px; margin-bottom: 12px; border: 1px solid #374151;
+    }
+    .lookup-box h3, .verify-box h3 { color: var(--accent); font-size: 0.9rem; margin-bottom: 12px; }
+    .field-row {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .field-row label { color: var(--muted); font-size: 0.88rem; min-width: 80px; }
+    .field-row input {
+      background: var(--bg); border: 2px solid #374151; color: var(--text);
+      padding: 7px 12px; border-radius: 8px; font-size: 1rem;
+      flex: 1; min-width: 80px;
+    }
+    .field-row input:focus { outline: none; border-color: var(--accent); }
+    .name-display {
+      background: #1e3a1e; border: 1px solid var(--green);
+      border-radius: 8px; padding: 10px 14px; margin-bottom: 10px;
+      font-size: 0.95rem;
+    }
+    .name-display strong { color: var(--green); font-size: 1.1rem; }
+    .err-msg {
+      color: var(--red); font-size: 0.82rem; margin-top: 8px; display: none;
+    }
+    .verify-hint { color: var(--muted); font-size: 0.78rem; margin-top: 6px; }
+
     /* Already submitted */
     .already-notice {
       display: none; background: #1a3a1a; border: 1px solid var(--green);
@@ -151,11 +191,47 @@
 </head>
 <body>
 
-<div id="mainContent">
+<!-- ══ Step 1：身份驗證 ══ -->
+<div id="verifyStep">
+  <h1>🪑 座位志願填選</h1>
+  <p class="subtitle">請先完成身份驗證，再填選座位</p>
+
+  <div class="steps-row">
+    <div class="step-dot active" id="sdot1">① 身份驗證</div>
+    <div class="step-arr">›</div>
+    <div class="step-dot" id="sdot2">② 填選座位</div>
+    <div class="step-arr">›</div>
+    <div class="step-dot" id="sdot3">③ 完成</div>
+  </div>
+
+  <div class="lookup-box">
+    <h3>輸入座號</h3>
+    <div class="field-row">
+      <label>座號</label>
+      <input type="number" id="seatInput" placeholder="1–30" min="1" max="30">
+      <button class="btn btn-primary" id="lookupBtn">查詢</button>
+    </div>
+  </div>
+
+  <div class="verify-box" id="verifyBox" style="display:none">
+    <div class="name-display" id="nameDisplay"></div>
+    <h3>身份驗證</h3>
+    <div class="field-row">
+      <label>身分證末6碼</label>
+      <input type="password" id="idInput" placeholder="例：456789" maxlength="6" autocomplete="off">
+      <button class="btn btn-primary" id="verifyBtn">驗證</button>
+    </div>
+    <p class="err-msg" id="verifyErr">❌ 驗證失敗，請重新輸入</p>
+    <p class="verify-hint">請輸入身分證號碼的最後6碼（數字）</p>
+  </div>
+</div>
+
+<!-- ══ Step 2：填選座位 ══ -->
+<div id="mainContent" style="display:none">
   <h1>🪑 座位志願填選</h1>
   <p class="subtitle">依喜好順序點選座位，第1個點選 = 第1志願（最想坐）</p>
 
-  <div class="id-row">
+  <div class="id-row" style="display:none">
     <label>我的座號</label>
     <input type="number" id="studentId" placeholder="1–30" min="1" max="30">
   </div>
@@ -197,6 +273,12 @@
   import { getFirestore, doc, setDoc, getDoc, serverTimestamp }
     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
+  // SHA-256 hash via Web Crypto API
+  async function sha256(str) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
   const firebaseConfig = {
     apiKey: "AIzaSyAov-9uW6FZQmf41-PPJ4-plvqR-Bu6zg4",
     authDomain: "teaching-test-5fd1c.firebaseapp.com",
@@ -208,7 +290,64 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  // 6 rows × 5 cols = 30 seats, labeled "row-col"
+  // ── Verify step logic ──
+  let verifiedSeatNum = null;
+
+  document.getElementById('lookupBtn').addEventListener('click', async () => {
+    const n = parseInt(document.getElementById('seatInput').value);
+    if (!n || n < 1 || n > 30) { alert('請輸入正確的座號（1–30）'); return; }
+    const btn = document.getElementById('lookupBtn');
+    btn.disabled = true; btn.textContent = '查詢中…';
+    const snap = await getDoc(doc(db, 'class_roster', String(n).padStart(2, '0')));
+    btn.disabled = false; btn.textContent = '查詢';
+    if (!snap.exists()) {
+      alert('找不到此座號，請洽老師確認名單是否已上傳。');
+      return;
+    }
+    const { name } = snap.data();
+    document.getElementById('nameDisplay').innerHTML =
+      `你好，<strong>${name}</strong> 同學（座號 ${n} 號）`;
+    document.getElementById('verifyBox').style.display = 'block';
+    document.getElementById('idInput').focus();
+    // store for later use
+    window._roster = { n, idHash: snap.data().idHash };
+  });
+
+  document.getElementById('seatInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('lookupBtn').click();
+  });
+
+  document.getElementById('verifyBtn').addEventListener('click', async () => {
+    const idVal = document.getElementById('idInput').value.trim();
+    if (idVal.length !== 6 || !/^\d{6}$/.test(idVal)) {
+      alert('請輸入6位數字');
+      return;
+    }
+    const btn = document.getElementById('verifyBtn');
+    btn.disabled = true; btn.textContent = '驗證中…';
+    const hash = await sha256(idVal);
+    btn.disabled = false; btn.textContent = '驗證';
+    if (hash !== window._roster.idHash) {
+      document.getElementById('verifyErr').style.display = 'block';
+      document.getElementById('idInput').value = '';
+      document.getElementById('idInput').focus();
+      return;
+    }
+    // ✅ Verified — switch to ranking step
+    verifiedSeatNum = window._roster.n;
+    document.getElementById('verifyStep').style.display = 'none';
+    document.getElementById('mainContent').style.display = 'block';
+    document.getElementById('sdot1').className = 'step-dot done';
+    document.getElementById('sdot2').className = 'step-dot active';
+    document.getElementById('studentId').value = verifiedSeatNum;
+    document.getElementById('studentId').dispatchEvent(new Event('change'));
+  });
+
+  document.getElementById('idInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('verifyBtn').click();
+  });
+
+  // ── Seat ranking logic ──
   const ROWS = 5, COLS = 6, TOTAL = ROWS * COLS;
   const ALL_SEATS = [];
   for (let r = 1; r <= ROWS; r++)
