@@ -232,7 +232,7 @@
   <h2><span class="live"></span>&nbsp;即時狀態</h2>
   <div class="stats">
     <div class="stat"><div class="stat-n" id="stN">0</div><div class="stat-l">已送出</div></div>
-    <div class="stat"><div class="stat-n" id="stP" style="color:var(--muted)">30</div><div class="stat-l">未送出</div></div>
+    <div class="stat"><div class="stat-n" id="stP" style="color:var(--muted)">29</div><div class="stat-l">未送出</div></div>
     <div class="stat"><div class="stat-n" id="stPct">0%</div><div class="stat-l">完成率</div></div>
   </div>
 </div>
@@ -327,6 +327,14 @@
   const db = getFirestore(app);
 
   const ROWS = 5, COLS = 6, TOTAL = ROWS * COLS;
+  const EXCLUDED_STUDENT_IDS = new Set([22]);
+  const STUDENT_IDS = Array.from({ length: 30 }, (_, i) => i + 1)
+    .filter(id => !EXCLUDED_STUDENT_IDS.has(id));
+  const CLASS_SIZE = STUDENT_IDS.length;
+
+  function isValidStudentId(id) {
+    return Number.isInteger(id) && id >= 1 && id <= 30 && !EXCLUDED_STUDENT_IDS.has(id);
+  }
   const ALL_SEATS = [];
   for (let r = 1; r <= ROWS; r++)
     for (let c = 1; c <= COLS; c++)
@@ -347,7 +355,10 @@
       if (parts.length < 3) { errs.push(`格式錯誤：${line}`); continue; }
       const [seatStr, name, idLast6] = parts;
       const n = parseInt(seatStr);
-      if (!n || n < 1 || n > 30) { errs.push(`座號錯誤：${line}`); continue; }
+      if (!isValidStudentId(n)) {
+        errs.push(n === 22 ? `22 號已排除：${line}` : `座號錯誤：${line}`);
+        continue;
+      }
       if (!/^\d{6}$/.test(idLast6)) { errs.push(`末6碼需為6位數字：${line}`); continue; }
       try {
         const idHash = await sha256(idLast6);
@@ -374,31 +385,31 @@
   // ---- Real-time listener ----
   onSnapshot(collection(db, 'seat_preferences'), snap => {
     subs = {};
-    snap.forEach(d => { subs[d.data().studentId] = d.data(); });
+    snap.forEach(d => {
+      const data = d.data();
+      if (isValidStudentId(data.studentId)) subs[data.studentId] = data;
+    });
     updateStatus();
   });
 
   function updateStatus() {
     const n = Object.keys(subs).length;
     document.getElementById('stN').textContent = n;
-    document.getElementById('stP').textContent = TOTAL - n;
-    document.getElementById('stPct').textContent = Math.round(n / TOTAL * 100) + '%';
+    document.getElementById('stP').textContent = CLASS_SIZE - n;
+    document.getElementById('stPct').textContent = Math.round(n / CLASS_SIZE * 100) + '%';
 
-    // Chip list (1–30)
-    let html = '';
-    for (let i = 1; i <= TOTAL; i++) {
-      html += subs[i]
-        ? `<div class="chip-done">${i}號</div>`
-        : `<div class="chip-todo">${i}號</div>`;
-    }
+    const html = STUDENT_IDS.map(i => subs[i]
+      ? `<div class="chip-done">${i}號</div>`
+      : `<div class="chip-todo">${i}號</div>`
+    ).join('');
     document.getElementById('chipList').innerHTML = html;
 
     const canRun = n > 0;
     document.getElementById('assignBtn').disabled = !canRun;
     document.getElementById('assignNote').textContent =
       n === 0  ? '等待學生送出志願…' :
-      n === TOTAL ? '全班已送出，可執行分配' :
-      `已有 ${n}/30 人送出，可先執行`;
+      n === CLASS_SIZE ? '全班已送出，可執行分配' :
+      `已有 ${n}/${CLASS_SIZE} 人送出，可先執行`;
   }
 
   // ---- Algorithm: Greedy Matching by Preference Rank ----

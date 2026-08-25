@@ -290,12 +290,21 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
+  const EXCLUDED_STUDENT_IDS = new Set([22]);
+
+  function isValidStudentId(id) {
+    return Number.isInteger(id) && id >= 1 && id <= 30 && !EXCLUDED_STUDENT_IDS.has(id);
+  }
+
   // ── Verify step logic ──
   let verifiedSeatNum = null;
 
   document.getElementById('lookupBtn').addEventListener('click', async () => {
     const n = parseInt(document.getElementById('seatInput').value);
-    if (!n || n < 1 || n > 30) { alert('請輸入正確的座號（1–30）'); return; }
+    if (!isValidStudentId(n)) {
+      alert(n === 22 ? '22 號不在本次名單中' : '請輸入正確的座號（1–30）');
+      return;
+    }
     const btn = document.getElementById('lookupBtn');
     btn.disabled = true; btn.textContent = '查詢中…';
     const snap = await getDoc(doc(db, 'class_roster', String(n).padStart(2, '0')));
@@ -416,7 +425,7 @@
   // Check existing submission
   document.getElementById('studentId').addEventListener('change', async () => {
     const id = parseInt(document.getElementById('studentId').value);
-    if (!id || id < 1 || id > TOTAL) return;
+    if (!isValidStudentId(id)) return;
     const snap = await getDoc(doc(db, 'seat_preferences', String(id).padStart(2, '0')));
     document.getElementById('alreadyNotice').style.display = snap.exists() ? 'block' : 'none';
   });
@@ -424,7 +433,10 @@
   // Submit
   document.getElementById('submitBtn').addEventListener('click', async () => {
     const id = parseInt(document.getElementById('studentId').value);
-    if (!id || id < 1 || id > TOTAL) { alert('請輸入正確的座號（1–30）'); return; }
+    if (!isValidStudentId(id)) {
+      alert(id === 22 ? '22 號不在本次名單中' : '請輸入正確的座號（1–30）');
+      return;
+    }
     if (ranking.length < TOTAL) { alert('請完成所有 30 個座位的排序，或使用「自動填入剩餘」'); return; }
 
     const btn = document.getElementById('submitBtn');
