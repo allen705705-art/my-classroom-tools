@@ -236,7 +236,7 @@
   <h2><span class="live"></span>&nbsp;即時狀態</h2>
   <div class="stats">
     <div class="stat"><div class="stat-n" id="stN">0</div><div class="stat-l">已送出</div></div>
-    <div class="stat"><div class="stat-n" id="stP" style="color:var(--muted)">29</div><div class="stat-l">未送出</div></div>
+    <div class="stat"><div class="stat-n" id="stP" style="color:var(--muted)">28</div><div class="stat-l">未送出</div></div>
     <div class="stat"><div class="stat-n" id="stPct">0%</div><div class="stat-l">完成率</div></div>
   </div>
 </div>
@@ -332,7 +332,7 @@
 
   const ROWS = 5, COLS = 6;
   const REMOVED_SEATS = new Set(['5-1', '5-6']);
-  const EXCLUDED_STUDENT_IDS = new Set([22]);
+  const EXCLUDED_STUDENT_IDS = new Set([22, 30]);
   const STUDENT_IDS = Array.from({ length: 30 }, (_, i) => i + 1)
     .filter(id => !EXCLUDED_STUDENT_IDS.has(id));
   const CLASS_SIZE = STUDENT_IDS.length;
@@ -367,7 +367,7 @@
       const [seatStr, name, idLast6] = parts;
       const n = parseInt(seatStr);
       if (!isValidStudentId(n)) {
-        errs.push(n === 22 ? `22 號已排除：${line}` : `座號錯誤：${line}`);
+        errs.push(EXCLUDED_STUDENT_IDS.has(n) ? `${n} 號已排除：${line}` : `座號錯誤：${line}`);
         continue;
       }
       if (!/^\d{6}$/.test(idLast6)) { errs.push(`末6碼需為6位數字：${line}`); continue; }

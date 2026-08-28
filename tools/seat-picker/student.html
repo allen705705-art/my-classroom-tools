@@ -295,7 +295,7 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  const EXCLUDED_STUDENT_IDS = new Set([22]);
+  const EXCLUDED_STUDENT_IDS = new Set([22, 30]);
 
   function isValidStudentId(id) {
     return Number.isInteger(id) && id >= 1 && id <= 30 && !EXCLUDED_STUDENT_IDS.has(id);
@@ -307,7 +307,7 @@
   document.getElementById('lookupBtn').addEventListener('click', async () => {
     const n = parseInt(document.getElementById('seatInput').value);
     if (!isValidStudentId(n)) {
-      alert(n === 22 ? '22 號不在本次名單中' : '請輸入正確的座號（1–30）');
+      alert(EXCLUDED_STUDENT_IDS.has(n) ? `${n} 號不在本次名單中` : '請輸入正確的座號（1–30）');
       return;
     }
     const btn = document.getElementById('lookupBtn');
@@ -448,7 +448,7 @@
   document.getElementById('submitBtn').addEventListener('click', async () => {
     const id = parseInt(document.getElementById('studentId').value);
     if (!isValidStudentId(id)) {
-      alert(id === 22 ? '22 號不在本次名單中' : '請輸入正確的座號（1–30）');
+      alert(EXCLUDED_STUDENT_IDS.has(id) ? `${id} 號不在本次名單中` : '請輸入正確的座號（1–30）');
       return;
     }
     if (ranking.length < TOTAL) { alert('請完成所有 28 個座位的排序，或使用「自動填入剩餘」'); return; }
