@@ -130,6 +130,10 @@
       background: #111827; border: 2px dashed #374151; color: var(--muted);
       font-size: 0.85rem;
     }
+    .cell.removed {
+      background: transparent; border: 1px dashed #374151;
+      color: #6b7280; font-size: 0.7rem; opacity: 0.45;
+    }
     .cell.assigned { border: 3px solid; }
     .cell .c-seat  { font-size: 0.65rem; color: var(--muted); line-height: 1.2; }
     .cell .c-stu   { font-size: clamp(1.4rem, 3vw, 2rem); font-weight: bold; line-height: 1; }
@@ -326,7 +330,8 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  const ROWS = 5, COLS = 6, TOTAL = ROWS * COLS;
+  const ROWS = 5, COLS = 6;
+  const REMOVED_SEATS = new Set(['5-1', '5-6']);
   const EXCLUDED_STUDENT_IDS = new Set([22]);
   const STUDENT_IDS = Array.from({ length: 30 }, (_, i) => i + 1)
     .filter(id => !EXCLUDED_STUDENT_IDS.has(id));
@@ -335,12 +340,18 @@
   function isValidStudentId(id) {
     return Number.isInteger(id) && id >= 1 && id <= 30 && !EXCLUDED_STUDENT_IDS.has(id);
   }
-  const ALL_SEATS = [];
+  const ALL_POSITIONS = [];
   for (let r = 1; r <= ROWS; r++)
     for (let c = 1; c <= COLS; c++)
-      ALL_SEATS.push(`${r}-${c}`);
+      ALL_POSITIONS.push(`${r}-${c}`);
+  const ALL_SEATS = ALL_POSITIONS.filter(seatId => !REMOVED_SEATS.has(seatId));
+  const TOTAL = ALL_SEATS.length;
 
   let subs = {}; // { studentId: { ranking: [...] } }
+
+  function activeRanking(ranking = []) {
+    return ranking.filter(seatId => ALL_SEATS.includes(seatId));
+  }
 
   // ---- Roster upload ----
   document.getElementById('uploadRosterBtn').addEventListener('click', async () => {
@@ -417,7 +428,7 @@
     // Build all (student, seat, rank) triples
     const triples = [];
     for (const [sid, data] of Object.entries(subs)) {
-      data.ranking.forEach((seatId, idx) => {
+      activeRanking(data.ranking).forEach((seatId, idx) => {
         triples.push({ student: parseInt(sid), seat: seatId, rank: idx + 1 });
       });
     }
@@ -467,15 +478,21 @@
     // ---- Grid ----
     const grid = document.getElementById('resGrid');
     grid.innerHTML = '';
-    ALL_SEATS.forEach(seatId => {
+    ALL_POSITIONS.forEach(seatId => {
       const cell = document.createElement('div');
+      if (REMOVED_SEATS.has(seatId)) {
+        cell.className = 'cell removed';
+        cell.textContent = '無座位';
+        grid.appendChild(cell);
+        return;
+      }
       const entry = result[seatId];
       if (entry) {
         const { studentId, wishRank } = entry;
         cell.className = `cell assigned ${wishClass(wishRank)}`;
         // Tooltip: show all students' ranks for this seat
         const rankInfo = Object.values(subs).map(s => {
-          const r = s.ranking.indexOf(seatId) + 1;
+          const r = activeRanking(s.ranking).indexOf(seatId) + 1;
           return `${s.studentId}號:志${r}`;
         }).sort((a,b)=>{
           const ra = parseInt(a.split('志')[1]);
@@ -498,12 +515,24 @@
     // ---- Table ----
     const tbody = document.getElementById('resTbody');
     const rows = Object.entries(result).sort((a, b) => parseInt(a[0].replace('-','')) - parseInt(b[0].replace('-','')));
+    const assignedStudents = new Set(rows.map(([, entry]) => entry.studentId));
+    const unassignedStudents = Object.keys(subs)
+      .map(Number)
+      .filter(studentId => !assignedStudents.has(studentId))
+      .sort((a, b) => a - b);
     tbody.innerHTML = rows.map(([seatId, { studentId, wishRank }]) => `
       <tr>
         <td><strong>${studentId}</strong> 號</td>
         <td>${seatId}</td>
         <td><span class="badge ${badgeClass(wishRank)}">第 ${wishRank} 志願</span></td>
         <td>${emoji(wishRank)} ${wishRank <= 3 ? '非常滿意' : wishRank <= 10 ? '尚可' : '委屈了'}</td>
+      </tr>
+    `).join('') + unassignedStudents.map(studentId => `
+      <tr>
+        <td><strong>${studentId}</strong> 號</td>
+        <td>未分配</td>
+        <td>—</td>
+        <td>無可用座位</td>
       </tr>
     `).join('');
 
@@ -522,6 +551,7 @@
       <span style="color:#a7f3d0">第3志願：${cnt.w3}人</span>
       <span style="color:#93c5fd">第4–10志願：${cnt.wm}人</span>
       <span style="color:#fdba74">第11志願以後：${cnt.wl}人</span>
+      <span style="color:#f87171">未分配：${unassignedStudents.length}人${unassignedStudents.length ? `（${unassignedStudents.join('、')}號）` : ''}</span>
     `;
 
     document.getElementById('resCard').style.display = 'block';
@@ -561,6 +591,9 @@
       .forEach(([seat, { studentId, wishRank }]) => {
         rows.push([studentId, seat, wishRank]);
       });
+    const assignedStudents = new Set(Object.values(lastResult).map(({ studentId }) => studentId));
+    Object.keys(subs).map(Number).filter(id => !assignedStudents.has(id)).sort((a, b) => a - b)
+      .forEach(studentId => rows.push([studentId, '未分配', '']));
     downloadCSV('座位分配結果.csv', rows);
   });
 
@@ -570,7 +603,7 @@
     const rows = [header];
     Object.values(subs)
       .sort((a, b) => a.studentId - b.studentId)
-      .forEach(s => rows.push([s.studentId, ...s.ranking]));
+      .forEach(s => rows.push([s.studentId, ...activeRanking(s.ranking)]));
     downloadCSV('學生志願序列表.csv', rows);
   });
 

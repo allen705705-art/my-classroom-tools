@@ -95,6 +95,11 @@
       user-select: none;
     }
     .seat:hover { border-color: var(--accent); }
+    .seat.removed {
+      background: transparent; border: 1px dashed #374151;
+      cursor: not-allowed; opacity: 0.35;
+    }
+    .seat.removed:hover { border-color: #374151; }
     .seat.ranked { background: #1e3a5f; border-color: var(--accent); }
     .seat.top3   { background: #3d1a00; border-color: var(--accent2); }
     .seat .seat-label { font-size: 0.65rem; color: var(--muted); }
@@ -241,7 +246,7 @@
   <div class="progress-wrap">
     <div class="progress-bar" id="progressBar"></div>
   </div>
-  <p class="progress-text">已排序 <span id="count">0</span> / 30 個座位</p>
+  <p class="progress-text">已排序 <span id="count">0</span> / 28 個座位</p>
 
   <div class="blackboard">▌ 黑　板 ▐</div>
   <div class="seat-grid" id="seatGrid"></div>
@@ -357,18 +362,27 @@
   });
 
   // ── Seat ranking logic ──
-  const ROWS = 5, COLS = 6, TOTAL = ROWS * COLS;
-  const ALL_SEATS = [];
+  const ROWS = 5, COLS = 6;
+  const REMOVED_SEATS = new Set(['5-1', '5-6']);
+  const ALL_POSITIONS = [];
   for (let r = 1; r <= ROWS; r++)
     for (let c = 1; c <= COLS; c++)
-      ALL_SEATS.push(`${r}-${c}`);
+      ALL_POSITIONS.push(`${r}-${c}`);
+  const ALL_SEATS = ALL_POSITIONS.filter(seatId => !REMOVED_SEATS.has(seatId));
+  const TOTAL = ALL_SEATS.length;
 
   let ranking = []; // seat IDs in preference order
 
   // Build grid
   const grid = document.getElementById('seatGrid');
-  ALL_SEATS.forEach(seatId => {
+  ALL_POSITIONS.forEach(seatId => {
     const el = document.createElement('div');
+    if (REMOVED_SEATS.has(seatId)) {
+      el.className = 'seat removed';
+      el.innerHTML = `<span class="seat-label">無座位</span>`;
+      grid.appendChild(el);
+      return;
+    }
     el.className = 'seat';
     el.dataset.seat = seatId;
     el.innerHTML = `<span class="seat-label">${seatId}</span>`;
@@ -437,14 +451,14 @@
       alert(id === 22 ? '22 號不在本次名單中' : '請輸入正確的座號（1–30）');
       return;
     }
-    if (ranking.length < TOTAL) { alert('請完成所有 30 個座位的排序，或使用「自動填入剩餘」'); return; }
+    if (ranking.length < TOTAL) { alert('請完成所有 28 個座位的排序，或使用「自動填入剩餘」'); return; }
 
     const btn = document.getElementById('submitBtn');
     btn.disabled = true; btn.textContent = '送出中…';
     try {
       await setDoc(doc(db, 'seat_preferences', String(id).padStart(2, '0')), {
         studentId: id,
-        // ranking[0] = 最想要的座位（志願序1），ranking[29] = 最不想要
+        // ranking[0] = 最想要的座位，ranking[27] = 最不想要
         ranking,
         submittedAt: serverTimestamp()
       });
